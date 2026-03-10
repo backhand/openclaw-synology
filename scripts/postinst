@@ -4,57 +4,45 @@ set -eu
 PKG_NAME="${SYNOPKG_PKGNAME:-openclaw}"
 PKG_DEST="${SYNOPKG_PKGDEST:-/var/packages/${PKG_NAME}/target}"
 PKG_HOME="/var/packages/${PKG_NAME}/home"
-
 APP_DIR="$PKG_DEST/app"
 VAR_DIR="$PKG_DEST/var"
 NPM_CACHE="$VAR_DIR/npm-cache"
 
 UI_LOG="${SYNOPKG_TEMP_LOGFILE:-/tmp/openclaw-postinst-ui.log}"
 VERBOSE_LOG="$VAR_DIR/install.log"
-
 mkdir -p "$APP_DIR" "$VAR_DIR" "$NPM_CACHE" "$PKG_HOME"
-
-# FD 3 -> UI log (minimal), stdout/stderr -> verbose log
 exec 3>"$UI_LOG"
 exec >>"$VERBOSE_LOG" 2>&1
 
 echo "[openclaw] Installing… (details: $VERBOSE_LOG)" >&3
 
-echo "[openclaw] postinst start" 
-date
+NODE_BIN=""
+NPM_BIN=""
+for p in /var/packages/Node.js_v22/target/usr/local/bin/node /var/packages/Node.js_v22/target/bin/node /usr/local/bin/node $(command -v node 2>/dev/null || true); do
+  if [ -n "$p" ] && [ -x "$p" ]; then NODE_BIN="$p"; break; fi
+done
+for p in /var/packages/Node.js_v22/target/usr/local/bin/npm /var/packages/Node.js_v22/target/bin/npm /usr/local/bin/npm $(command -v npm 2>/dev/null || true); do
+  if [ -n "$p" ] && [ -x "$p" ]; then NPM_BIN="$p"; break; fi
+done
 
-echo "[openclaw] node=$(node --version) npm=$(npm --version)"
+echo "[openclaw] node=$NODE_BIN npm=$NPM_BIN"
+[ -n "$NODE_BIN" ] && [ -n "$NPM_BIN" ]
+
 export HOME="$PKG_HOME"
 export npm_config_cache="$NPM_CACHE"
-
-# Install OpenClaw from npm (includes dist/ build output).
 cd "$APP_DIR"
 if [ ! -f package.json ]; then
-  npm init -y >/dev/null 2>&1 || true
+  "$NPM_BIN" init -y >/dev/null 2>&1 || true
 fi
 
-echo "[openclaw] npm install openclaw (omit dev)"
-# Use npm install (not git clone) so dist/ exists.
-npm install --omit=dev openclaw
-
-# Auto-start after install
+echo "[openclaw] npm install openclaw"
+"$NPM_BIN" install --omit=dev openclaw
 
 echo "[openclaw] starting service"
 if "$PKG_DEST/bin/openclawctl" start; then
   echo "[openclaw] service started"
 else
   echo "[openclaw] WARNING: service failed to start automatically"
-fi
-
-# Best-effort readiness check
-if command -v curl >/dev/null 2>&1; then
-  for i in 1 2 3 4 5; do
-    if curl -fsS http://127.0.0.1:18789/healthz >/dev/null 2>&1; then
-      echo "[openclaw] ready";
-      break
-    fi
-    sleep 1
-  done
 fi
 
 echo "[openclaw] postinst done"

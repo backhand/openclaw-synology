@@ -1,5 +1,5 @@
 package="openclaw"
-version="1.2.1"
+version="1.2.2"
 os_min_ver="7.2-42661"
 
 # Package Center metadata

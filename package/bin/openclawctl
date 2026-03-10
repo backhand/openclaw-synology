@@ -1,6 +1,5 @@
 #!/bin/sh
 set -eu
-
 PKG_NAME="openclaw"
 PKG_DIR="/var/packages/${PKG_NAME}/target"
 APP_DIR="$PKG_DIR/app"
@@ -9,43 +8,42 @@ HOME_DIR="/var/packages/${PKG_NAME}/home"
 PIDFILE="$VAR_DIR/openclaw.pid"
 LOGFILE="$VAR_DIR/openclaw.log"
 PORT="18789"
-
 OPENCLAW_MJS="$APP_DIR/node_modules/openclaw/openclaw.mjs"
-
 mkdir -p "$VAR_DIR" "$HOME_DIR"
+
+NODE_BIN=""
+for p in /var/packages/Node.js_v22/target/usr/local/bin/node /var/packages/Node.js_v22/target/bin/node /usr/local/bin/node $(command -v node 2>/dev/null || true); do
+  if [ -n "$p" ] && [ -x "$p" ]; then NODE_BIN="$p"; break; fi
+done
 
 health_ok() {
   command -v curl >/dev/null 2>&1 && curl -fsS "http://127.0.0.1:${PORT}/healthz" >/dev/null 2>&1
 }
 
 start_proc() {
-  if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
-    if health_ok; then
-      return 0
-    fi
+  if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null && health_ok; then
+    return 0
   fi
   rm -f "$PIDFILE"
-
+  if [ -z "$NODE_BIN" ]; then
+    echo "[openclawctl] ERROR: node binary not found" >&2
+    return 1
+  fi
   if [ ! -f "$OPENCLAW_MJS" ]; then
     echo "[openclawctl] ERROR: missing $OPENCLAW_MJS" >&2
     return 1
   fi
-
   export HOME="$HOME_DIR"
-
-  nohup node "$OPENCLAW_MJS" gateway --allow-unconfigured --bind lan --port "$PORT" \
-    >>"$LOGFILE" 2>&1 &
+  nohup "$NODE_BIN" "$OPENCLAW_MJS" gateway --allow-unconfigured --bind lan --port "$PORT" >>"$LOGFILE" 2>&1 &
   echo $! > "$PIDFILE"
-
   i=0
-  while [ $i -lt 15 ]; do
+  while [ $i -lt 20 ]; do
     if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null && health_ok; then
       return 0
     fi
     sleep 1
     i=$((i+1))
   done
-
   echo "[openclawctl] ERROR: gateway failed to become healthy" >&2
   if [ -f "$PIDFILE" ]; then
     kill "$(cat "$PIDFILE")" 2>/dev/null || true
@@ -71,8 +69,8 @@ status_proc() {
 }
 
 case "${1:-}" in
-  start)  start_proc ;;
-  stop)   stop_proc ;;
+  start) start_proc ;;
+  stop) stop_proc ;;
   status) status_proc ;;
   *) echo "usage: openclawctl {start|stop|status}" >&2; exit 2 ;;
 esac

@@ -1,21 +1,37 @@
 #!/bin/sh
 set -eu
 LOGFILE="${SYNOPKG_TEMP_LOGFILE:-/tmp/openclaw-preinst.log}"
-# Keep UI output minimal; details go here
 exec >>"$LOGFILE" 2>&1
 
-if ! command -v node >/dev/null 2>&1; then
-  echo "OpenClaw requires Node.js v22+. Install Synology 'Node.js v22' package first." > "$SYNOPKG_TEMP_LOGFILE"
-  exit 1
-fi
-# Require Node >= 22
-if ! node -e 'process.exit((+process.versions.node.split(".")[0] >= 22)?0:1)'; then
-  echo "OpenClaw requires Node.js v22+. Current: $(node --version). Install Synology 'Node.js v22' package." > "$SYNOPKG_TEMP_LOGFILE"
-  exit 1
-fi
+NODE_BIN=""
+NPM_BIN=""
+for p in \
+  /var/packages/Node.js_v22/target/usr/local/bin/node \
+  /var/packages/Node.js_v22/target/bin/node \
+  /usr/local/bin/node \
+  $(command -v node 2>/dev/null || true)
+  do
+  if [ -n "$p" ] && [ -x "$p" ]; then NODE_BIN="$p"; break; fi
+ done
+for p in \
+  /var/packages/Node.js_v22/target/usr/local/bin/npm \
+  /var/packages/Node.js_v22/target/bin/npm \
+  /usr/local/bin/npm \
+  $(command -v npm 2>/dev/null || true)
+  do
+  if [ -n "$p" ] && [ -x "$p" ]; then NPM_BIN="$p"; break; fi
+ done
 
-if ! command -v npm >/dev/null 2>&1; then
-  echo "npm not found (install Node.js v22 package)" > "$SYNOPKG_TEMP_LOGFILE"
+if [ -z "$NODE_BIN" ]; then
+  echo "OpenClaw requires Synology Node.js v22. Node binary not found." > "$SYNOPKG_TEMP_LOGFILE"
+  exit 1
+fi
+if ! "$NODE_BIN" -e 'process.exit((+process.versions.node.split(".")[0] >= 22)?0:1)'; then
+  echo "OpenClaw requires Node.js v22+. Current: $($NODE_BIN --version)." > "$SYNOPKG_TEMP_LOGFILE"
+  exit 1
+fi
+if [ -z "$NPM_BIN" ]; then
+  echo "OpenClaw requires npm from Synology Node.js v22." > "$SYNOPKG_TEMP_LOGFILE"
   exit 1
 fi
 if ! command -v curl >/dev/null 2>&1; then
@@ -27,6 +43,5 @@ if ! command -v tar >/dev/null 2>&1; then
   exit 1
 fi
 
-# Minimal success confirmation
 echo "OpenClaw pre-checks OK." > "$SYNOPKG_TEMP_LOGFILE"
 exit 0
