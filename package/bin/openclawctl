@@ -14,10 +14,18 @@ OPENCLAW_MJS="$APP_DIR/node_modules/openclaw/openclaw.mjs"
 
 mkdir -p "$VAR_DIR" "$HOME_DIR"
 
+health_ok() {
+  command -v curl >/dev/null 2>&1 && curl -fsS "http://127.0.0.1:${PORT}/healthz" >/dev/null 2>&1
+}
+
 start_proc() {
   if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
-    return 0
+    if health_ok; then
+      return 0
+    fi
   fi
+  rm -f "$PIDFILE"
+
   if [ ! -f "$OPENCLAW_MJS" ]; then
     echo "[openclawctl] ERROR: missing $OPENCLAW_MJS" >&2
     return 1
@@ -25,12 +33,25 @@ start_proc() {
 
   export HOME="$HOME_DIR"
 
-  # Bind to LAN so the dashboard is reachable from browsers.
-  # --allow-unconfigured lets first-run work without a config token.
   nohup node "$OPENCLAW_MJS" gateway --allow-unconfigured --bind lan --port "$PORT" \
     >>"$LOGFILE" 2>&1 &
   echo $! > "$PIDFILE"
-  return 0
+
+  i=0
+  while [ $i -lt 15 ]; do
+    if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null && health_ok; then
+      return 0
+    fi
+    sleep 1
+    i=$((i+1))
+  done
+
+  echo "[openclawctl] ERROR: gateway failed to become healthy" >&2
+  if [ -f "$PIDFILE" ]; then
+    kill "$(cat "$PIDFILE")" 2>/dev/null || true
+    rm -f "$PIDFILE"
+  fi
+  return 1
 }
 
 stop_proc() {
@@ -42,13 +63,10 @@ stop_proc() {
 }
 
 status_proc() {
-  if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
-    # Optional health check
-    if command -v curl >/dev/null 2>&1; then
-      curl -fsS "http://127.0.0.1:${PORT}/healthz" >/dev/null 2>&1 || true
-    fi
+  if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null && health_ok; then
     return 0
   fi
+  rm -f "$PIDFILE"
   return 1
 }
 

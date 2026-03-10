@@ -40,7 +40,11 @@ npm install --omit=dev openclaw
 # Auto-start after install
 
 echo "[openclaw] starting service"
-"$PKG_DEST/bin/openclawctl" start || true
+if "$PKG_DEST/bin/openclawctl" start; then
+  echo "[openclaw] service started"
+else
+  echo "[openclaw] WARNING: service failed to start automatically"
+fi
 
 # Best-effort readiness check
 if command -v curl >/dev/null 2>&1; then

@@ -1,12 +1,16 @@
 {
   ".url": {
     "com.openclaw.OpenClaw": {
-      "type": "url",
-      "icon": "images/openclaw_{0}.png",
+      "type": "legacy",
+      "allUsers": true,
+      "allowMultiInstance": false,
       "title": "OpenClaw",
       "desc": "OpenClaw Gateway Dashboard",
-      "url": "3rdparty/openclaw/index.html",
-      "allUsers": true
+      "icon": "images/openclaw_{0}.png",
+      "appWindow": "com.openclaw.OpenClaw",
+      "width": 1280,
+      "height": 900,
+      "url": "3rdparty/openclaw/index.html"
     }
   }
 }
