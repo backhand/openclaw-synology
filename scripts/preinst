@@ -1,33 +1,32 @@
 #!/bin/sh
 set -eu
 LOGFILE="${SYNOPKG_TEMP_LOGFILE:-/tmp/openclaw-preinst.log}"
+# Keep UI output minimal; details go here
 exec >>"$LOGFILE" 2>&1
 
-echo "[openclaw] preinst: starting" 
-date
-
-echo "[openclaw] PATH=$PATH"
-
 if ! command -v node >/dev/null 2>&1; then
-  echo "[openclaw] ERROR: Node.js is required (node not found)"
+  echo "OpenClaw requires Node.js v22+. Install Synology 'Node.js v22' package first." > "$SYNOPKG_TEMP_LOGFILE"
   exit 1
 fi
-if ! node --version 2>&1 | grep -Eq '^v(20|2[0-9]+|3[0-9]+)'; then
-  echo "[openclaw] ERROR: Node.js 20+ required (found $(node --version))"
+# Require Node >= 22
+if ! node -e 'process.exit((+process.versions.node.split(".")[0] >= 22)?0:1)'; then
+  echo "OpenClaw requires Node.js v22+. Current: $(node --version). Install Synology 'Node.js v22' package." > "$SYNOPKG_TEMP_LOGFILE"
   exit 1
 fi
+
 if ! command -v npm >/dev/null 2>&1; then
-  echo "[openclaw] ERROR: npm is required (npm not found)"
+  echo "npm not found (install Node.js v22 package)" > "$SYNOPKG_TEMP_LOGFILE"
   exit 1
 fi
 if ! command -v curl >/dev/null 2>&1; then
-  echo "[openclaw] ERROR: curl is required (curl not found)"
+  echo "curl not found" > "$SYNOPKG_TEMP_LOGFILE"
   exit 1
 fi
 if ! command -v tar >/dev/null 2>&1; then
-  echo "[openclaw] ERROR: tar is required (tar not found)"
+  echo "tar not found" > "$SYNOPKG_TEMP_LOGFILE"
   exit 1
 fi
 
-echo "[openclaw] preinst: ok" 
+# Minimal success confirmation
+echo "OpenClaw pre-checks OK." > "$SYNOPKG_TEMP_LOGFILE"
 exit 0
