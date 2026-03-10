@@ -16,8 +16,12 @@ date
 
 echo "[openclaw] PKG_DEST=$PKG_DEST" 
 echo "[openclaw] PKG_HOME=$PKG_HOME"
+echo "[openclaw] node=$(node --version 2>/dev/null || echo MISSING)"
+echo "[openclaw] npm=$(npm --version 2>/dev/null || echo MISSING)"
 
 mkdir -p "$APP_DIR" "$VAR_DIR" "$NPM_CACHE" "$PKG_HOME"
+# Persist installer log somewhere easy to tail later
+ln -sf "$LOGFILE" "$VAR_DIR/install.log" || true
 
 # Ensure npm uses writable dirs
 export HOME="$PKG_HOME"
@@ -29,7 +33,7 @@ TMP_TGZ="$TMPBASE/openclaw-src.tgz"
 TMP_DIR="$TMPBASE/openclaw-src"
 
 echo "[openclaw] Downloading $URL -> $TMP_TGZ"
-curl -L "$URL" -o "$TMP_TGZ"
+curl -fSL --retry 3 --retry-delay 2 "$URL" -o "$TMP_TGZ"
 
 echo "[openclaw] Extracting (portable)"
 rm -rf "$TMP_DIR"
