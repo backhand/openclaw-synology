@@ -1,7 +1,16 @@
 #!/bin/sh
-if ! node --version 2>&1 | grep -Eq '^v(20|2[0-9]+|3[0-9]+)'; then
-  echo "Node.js 20+ required (found $(node --version))" >&2
+set -eu
+# Basic dependency check
+if ! command -v node >/dev/null 2>&1; then
+  echo "Node.js is required (node not found)" > "$SYNOPKG_TEMP_LOGFILE"
   exit 1
 fi
-mkdir -p /volume1/@appstore/openclaw
+if ! node --version 2>&1 | grep -Eq '^v(20|2[0-9]+|3[0-9]+)'; then
+  echo "Node.js 20+ required (found $(node --version))" > "$SYNOPKG_TEMP_LOGFILE"
+  exit 1
+fi
+if ! command -v npm >/dev/null 2>&1; then
+  echo "npm is required (npm not found)" > "$SYNOPKG_TEMP_LOGFILE"
+  exit 1
+fi
 exit 0

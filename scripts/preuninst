@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+# stop if running
+"$SYNOPKG_PKGDEST/bin/openclawctl" stop >/dev/null 2>&1 || true
+exit 0

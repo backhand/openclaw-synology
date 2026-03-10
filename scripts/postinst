@@ -1,14 +1,16 @@
 #!/bin/sh
-SYNOPKG_TEMP_LOGFILE = $SYNOPKG_TEMP_LOGFILE
-
-APP_INSTALL_PATH="/volume1/@appstore/openclaw"
-if [ ! -d "$APP_INSTALL_PATH" ]; then
-  mkdir -p "$APP_INSTALL_PATH"
-fi
-cd "$APP_INSTALL_PATH"
-git clone https://github.com/openclaw/openclaw .
-npm ci --omit=dev
-chown -R http:http .
-ln -sf "$APP_INSTALL_PATH/bin/openclaw" /usr/local/bin/openclaw
-synoservicecfg --add openclaw-gw "$SYNOPKG_TEMP_LOGFILE" 1 start-autostart.sh stop-autostart.sh
+set -eu
+PKG_DIR="$SYNOPKG_PKGDEST"
+APP_DIR="$PKG_DIR/app"
+mkdir -p "$APP_DIR"
+# Fetch OpenClaw source (no git dependency)
+TMP_TGZ="$SYNOPKG_PKGINST_TEMP/openclaw-src.tgz"
+URL="https://github.com/openclaw/openclaw/archive/refs/heads/main.tar.gz"
+/bin/curl -L "$URL" -o "$TMP_TGZ"
+/bin/tar -xzf "$TMP_TGZ" -C "$APP_DIR" --strip-components=1
+cd "$APP_DIR"
+# Install dependencies
+npm ci --omit=dev > "$SYNOPKG_TEMP_LOGFILE" 2>&1 || npm install --omit=dev >> "$SYNOPKG_TEMP_LOGFILE" 2>&1
+# Ensure writable runtime dirs
+mkdir -p "$PKG_DIR/var"
 exit 0

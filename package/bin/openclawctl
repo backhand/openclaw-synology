@@ -1,0 +1,35 @@
+#!/bin/sh
+set -eu
+PKG_DIR="/var/packages/openclaw/target"
+APP_DIR="$PKG_DIR/app"
+VAR_DIR="$PKG_DIR/var"
+PIDFILE="$VAR_DIR/openclaw.pid"
+LOGFILE="$VAR_DIR/openclaw.log"
+mkdir -p "$VAR_DIR"
+case "${1:-}" in
+  start)
+    if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
+      exit 0
+    fi
+    # Start OpenClaw gateway (best-effort; adjust entrypoint once confirmed)
+    (cd "$APP_DIR" && nohup npm run start >>"$LOGFILE" 2>&1 & echo $! > "$PIDFILE")
+    exit 0
+    ;;
+  stop)
+    if [ -f "$PIDFILE" ]; then
+      kill "$(cat "$PIDFILE")" 2>/dev/null || true
+      rm -f "$PIDFILE"
+    fi
+    exit 0
+    ;;
+  status)
+    if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
+      exit 0
+    fi
+    exit 1
+    ;;
+  *)
+    echo "usage: openclawctl {start|stop|status}" >&2
+    exit 2
+    ;;
+esac

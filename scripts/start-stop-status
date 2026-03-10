@@ -1,0 +1,9 @@
+#!/bin/sh
+set -eu
+CTL="$SYNOPKG_PKGDEST/bin/openclawctl"
+case "$1" in
+  start)  "$CTL" start ;;
+  stop)   "$CTL" stop ;;
+  status) "$CTL" status ;;
+  *) exit 1 ;;
+esac

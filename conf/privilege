@@ -1,0 +1,16 @@
+{
+  "defaults": {
+    "run-as": "package"
+  },
+  "username": "openclaw",
+  "groupname": "openclaw",
+  "ctrl-script": [
+    {"action": "start", "run-as": "package"},
+    {"action": "stop", "run-as": "package"},
+    {"action": "status", "run-as": "package"},
+    {"action": "preinst", "run-as": "root"},
+    {"action": "postinst", "run-as": "root"},
+    {"action": "preuninst", "run-as": "root"},
+    {"action": "postuninst", "run-as": "root"}
+  ]
+}
