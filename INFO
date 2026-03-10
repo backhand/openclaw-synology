@@ -1,5 +1,5 @@
 package="openclaw"
-version="1.1.5"
+version="1.1.6"
 os_min_ver="7.2-42661"
 displayname="OpenClaw"
 description="Self-hosted AI agent platform (OpenClaw)"
@@ -9,3 +9,9 @@ maintainer_url="https://openclaw.ai"
 package_url="https://github.com/openclaw/openclaw"
 startable="yes"
 ctl_stop="yes"
+# Show an Open button in Package Center after start
+adminprotocol="http"
+adminport="3000"
+adminurl="/"
+# Require Synology Node.js package
+install_dep_packages="Node.js_v22"
