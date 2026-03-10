@@ -53,7 +53,9 @@ cat > "$CONFIG_FILE" <<EOF
 }
 EOF
 chmod 600 "$CONFIG_FILE"
-chown -R "$SYNOPKG_PKGUSER:$SYNOPKG_PKGGROUP" "$PKG_HOME" || true
+if [ -n "${SYNOPKG_PKGUSER:-}" ] && [ -n "${SYNOPKG_PKGGROUP:-}" ]; then
+  chown -R "$SYNOPKG_PKGUSER:$SYNOPKG_PKGGROUP" "$PKG_HOME" || true
+fi
 
 echo "[openclaw] starting service"
 if "$PKG_DEST/bin/openclawctl" start; then
