@@ -24,14 +24,26 @@ export HOME="$PKG_HOME"
 export npm_config_cache="$NPM_CACHE"
 
 URL="https://github.com/openclaw/openclaw/archive/refs/heads/main.tar.gz"
-TMP_TGZ="${SYNOPKG_PKGINST_TEMP:-/tmp}/openclaw-src.tgz"
+TMPBASE="${SYNOPKG_PKGINST_TEMP:-/tmp}"
+TMP_TGZ="$TMPBASE/openclaw-src.tgz"
+TMP_DIR="$TMPBASE/openclaw-src"
 
 echo "[openclaw] Downloading $URL -> $TMP_TGZ"
 curl -L "$URL" -o "$TMP_TGZ"
 
-echo "[openclaw] Extracting to $APP_DIR"
+echo "[openclaw] Extracting (portable)"
+rm -rf "$TMP_DIR"
+mkdir -p "$TMP_DIR"
 rm -rf "$APP_DIR"/*
-tar -xzf "$TMP_TGZ" -C "$APP_DIR" --strip-components=1
+
+tar -xzf "$TMP_TGZ" -C "$TMP_DIR"
+TOP_DIR="$(find "$TMP_DIR" -mindepth 1 -maxdepth 1 -type d | head -n 1)"
+if [ -z "$TOP_DIR" ] || [ ! -d "$TOP_DIR" ]; then
+  echo "[openclaw] ERROR: could not locate extracted top dir" 
+  ls -la "$TMP_DIR" || true
+  exit 1
+fi
+cp -a "$TOP_DIR"/. "$APP_DIR"/
 
 cd "$APP_DIR"
 
