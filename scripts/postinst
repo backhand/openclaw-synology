@@ -1,0 +1,14 @@
+#!/bin/sh
+SYNOPKG_TEMP_LOGFILE = $SYNOPKG_TEMP_LOGFILE
+
+APP_INSTALL_PATH="/volume1/@appstore/openclaw"
+if [ ! -d "$APP_INSTALL_PATH" ]; then
+  mkdir -p "$APP_INSTALL_PATH"
+fi
+cd "$APP_INSTALL_PATH"
+git clone https://github.com/openclaw/openclaw .
+npm ci --omit=dev
+chown -R http:http .
+ln -sf "$APP_INSTALL_PATH/bin/openclaw" /usr/local/bin/openclaw
+synoservicecfg --add openclaw-gw "$SYNOPKG_TEMP_LOGFILE" 1 start-autostart.sh stop-autostart.sh
+exit 0
