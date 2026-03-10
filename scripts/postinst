@@ -38,13 +38,22 @@ fi
 echo "[openclaw] npm install openclaw"
 "$NPM_BIN" install --omit=dev openclaw
 
+echo "[openclaw] Running npm audit fix"
+"$NPM_BIN" audit fix || echo "[openclaw] Audit fix skipped (non-critical)"
+
 echo "[openclaw] Setting UI permissions"
 chmod -R 755 "$PKG_DEST/ui"
 
 # Create DSM app symlink (for proper "Open" integration)
-mkdir -p /usr/syno/synoman/webman/3rdparty
-ln -sf "$PKG_DEST/ui" /usr/syno/synoman/webman/3rdparty/OpenClaw
-echo "[openclaw] Created webman symlink" >&3
+# Create DSM app symlink with sudo fallback
+LN_CMD="ln -sf \"$PKG_DEST/ui\" /usr/syno/synoman/webman/3rdparty/OpenClaw"
+if command -v sudo >/dev/null && sudo $LN_CMD; then
+  echo "[openclaw] Created webman symlink (via sudo)" >&3
+elif $LN_CMD; then
+  echo "[openclaw] Created webman symlink" >&3
+else
+  echo "[openclaw] WARNING: Failed to create webman symlink (permissions?)" >&3
+fi
 
 # Create minimal OpenClaw config (in package home dir)
 CONFIG_DIR="$PKG_HOME/.openclaw"

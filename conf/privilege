@@ -1,7 +1,8 @@
-{
-  "defaults": {
-    "run-as": "package"
-  },
-  "username": "openclaw",
-  "groupname": "openclaw"
-}
+<privilege>
+  <path>/usr/syno/synoman/webman/3rdparty</path>
+  <allow>write</allow>
+</privilege>
+<privilege>
+  <path>/var/packages/openclaw</path>
+  <allow>all</allow>
+</privilege>
