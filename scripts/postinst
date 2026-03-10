@@ -1,16 +1,47 @@
 #!/bin/sh
 set -eu
-PKG_DIR="$SYNOPKG_PKGDEST"
-APP_DIR="$PKG_DIR/app"
-mkdir -p "$APP_DIR"
-# Fetch OpenClaw source (no git dependency)
-TMP_TGZ="$SYNOPKG_PKGINST_TEMP/openclaw-src.tgz"
+LOGFILE="${SYNOPKG_TEMP_LOGFILE:-/tmp/openclaw-postinst.log}"
+exec >>"$LOGFILE" 2>&1
+
+PKG_NAME="${SYNOPKG_PKGNAME:-openclaw}"
+PKG_DEST="${SYNOPKG_PKGDEST:-/var/packages/${PKG_NAME}/target}"
+PKG_HOME="/var/packages/${PKG_NAME}/home"
+
+APP_DIR="$PKG_DEST/app"
+VAR_DIR="$PKG_DEST/var"
+NPM_CACHE="$VAR_DIR/npm-cache"
+
+echo "[openclaw] postinst: starting" 
+date
+
+echo "[openclaw] PKG_DEST=$PKG_DEST" 
+echo "[openclaw] PKG_HOME=$PKG_HOME"
+
+mkdir -p "$APP_DIR" "$VAR_DIR" "$NPM_CACHE" "$PKG_HOME"
+
+# Ensure npm uses writable dirs
+export HOME="$PKG_HOME"
+export npm_config_cache="$NPM_CACHE"
+
 URL="https://github.com/openclaw/openclaw/archive/refs/heads/main.tar.gz"
-/bin/curl -L "$URL" -o "$TMP_TGZ"
-/bin/tar -xzf "$TMP_TGZ" -C "$APP_DIR" --strip-components=1
+TMP_TGZ="${SYNOPKG_PKGINST_TEMP:-/tmp}/openclaw-src.tgz"
+
+echo "[openclaw] Downloading $URL -> $TMP_TGZ"
+curl -L "$URL" -o "$TMP_TGZ"
+
+echo "[openclaw] Extracting to $APP_DIR"
+rm -rf "$APP_DIR"/*
+tar -xzf "$TMP_TGZ" -C "$APP_DIR" --strip-components=1
+
 cd "$APP_DIR"
-# Install dependencies
-npm ci --omit=dev > "$SYNOPKG_TEMP_LOGFILE" 2>&1 || npm install --omit=dev >> "$SYNOPKG_TEMP_LOGFILE" 2>&1
-# Ensure writable runtime dirs
-mkdir -p "$PKG_DIR/var"
+
+echo "[openclaw] Installing node deps (npm ci --omit=dev)"
+if npm ci --omit=dev; then
+  echo "[openclaw] npm ci ok"
+else
+  echo "[openclaw] npm ci failed, retrying npm install --omit=dev"
+  npm install --omit=dev
+fi
+
+echo "[openclaw] postinst: done"
 exit 0
