@@ -1,8 +1,10 @@
 #!/bin/sh
 set -eu
+
 PKG_NAME="${SYNOPKG_PKGNAME:-openclaw}"
 PKG_DEST="${SYNOPKG_PKGDEST:-/var/packages/${PKG_NAME}/target}"
 PKG_HOME="/var/packages/${PKG_NAME}/home"
+
 APP_DIR="$PKG_DEST/app"
 VAR_DIR="$PKG_DEST/var"
 NPM_CACHE="$VAR_DIR/npm-cache"
@@ -25,32 +27,30 @@ echo "[openclaw] node=$(node --version) npm=$(npm --version)"
 export HOME="$PKG_HOME"
 export npm_config_cache="$NPM_CACHE"
 
-URL="https://github.com/openclaw/openclaw/archive/refs/heads/main.tar.gz"
-TMPBASE="${SYNOPKG_PKGINST_TEMP:-/tmp}"
-TMP_TGZ="$TMPBASE/openclaw-src.tgz"
-TMP_DIR="$TMPBASE/openclaw-src"
-
-echo "[openclaw] Downloading $URL"
-curl -fsSL --retry 3 --retry-delay 2 "$URL" -o "$TMP_TGZ"
-
-echo "[openclaw] Extracting"
-rm -rf "$TMP_DIR"
-mkdir -p "$TMP_DIR"
-rm -rf "$APP_DIR"/*
-
-tar -xzf "$TMP_TGZ" -C "$TMP_DIR"
-TOP_DIR="$(find "$TMP_DIR" -mindepth 1 -maxdepth 1 -type d | head -n 1)"
-[ -d "$TOP_DIR" ]
-cp -a "$TOP_DIR"/. "$APP_DIR"/
-
+# Install OpenClaw from npm (includes dist/ build output).
 cd "$APP_DIR"
+if [ ! -f package.json ]; then
+  npm init -y >/dev/null 2>&1 || true
+fi
 
-echo "[openclaw] npm ci --omit=dev"
-if npm ci --omit=dev; then
-  echo "[openclaw] npm ci ok"
-else
-  echo "[openclaw] npm ci failed; retry npm install --omit=dev"
-  npm install --omit=dev
+echo "[openclaw] npm install openclaw (omit dev)"
+# Use npm install (not git clone) so dist/ exists.
+npm install --omit=dev openclaw
+
+# Auto-start after install
+
+echo "[openclaw] starting service"
+"$PKG_DEST/bin/openclawctl" start || true
+
+# Best-effort readiness check
+if command -v curl >/dev/null 2>&1; then
+  for i in 1 2 3 4 5; do
+    if curl -fsS http://127.0.0.1:18789/healthz >/dev/null 2>&1; then
+      echo "[openclaw] ready";
+      break
+    fi
+    sleep 1
+  done
 fi
 
 echo "[openclaw] postinst done"

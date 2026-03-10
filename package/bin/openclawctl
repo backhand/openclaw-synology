@@ -1,35 +1,60 @@
 #!/bin/sh
 set -eu
-PKG_DIR="/var/packages/openclaw/target"
+
+PKG_NAME="openclaw"
+PKG_DIR="/var/packages/${PKG_NAME}/target"
 APP_DIR="$PKG_DIR/app"
 VAR_DIR="$PKG_DIR/var"
+HOME_DIR="/var/packages/${PKG_NAME}/home"
 PIDFILE="$VAR_DIR/openclaw.pid"
 LOGFILE="$VAR_DIR/openclaw.log"
-mkdir -p "$VAR_DIR"
+PORT="18789"
+
+OPENCLAW_MJS="$APP_DIR/node_modules/openclaw/openclaw.mjs"
+
+mkdir -p "$VAR_DIR" "$HOME_DIR"
+
+start_proc() {
+  if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
+    return 0
+  fi
+  if [ ! -f "$OPENCLAW_MJS" ]; then
+    echo "[openclawctl] ERROR: missing $OPENCLAW_MJS" >&2
+    return 1
+  fi
+
+  export HOME="$HOME_DIR"
+
+  # Bind to LAN so the dashboard is reachable from browsers.
+  # --allow-unconfigured lets first-run work without a config token.
+  nohup node "$OPENCLAW_MJS" gateway --allow-unconfigured --bind lan --port "$PORT" \
+    >>"$LOGFILE" 2>&1 &
+  echo $! > "$PIDFILE"
+  return 0
+}
+
+stop_proc() {
+  if [ -f "$PIDFILE" ]; then
+    kill "$(cat "$PIDFILE")" 2>/dev/null || true
+    rm -f "$PIDFILE"
+  fi
+  return 0
+}
+
+status_proc() {
+  if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
+    # Optional health check
+    if command -v curl >/dev/null 2>&1; then
+      curl -fsS "http://127.0.0.1:${PORT}/healthz" >/dev/null 2>&1 || true
+    fi
+    return 0
+  fi
+  return 1
+}
+
 case "${1:-}" in
-  start)
-    if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
-      exit 0
-    fi
-    # Start OpenClaw gateway (best-effort; adjust entrypoint once confirmed)
-    (cd "$APP_DIR" && nohup npm run start >>"$LOGFILE" 2>&1 & echo $! > "$PIDFILE")
-    exit 0
-    ;;
-  stop)
-    if [ -f "$PIDFILE" ]; then
-      kill "$(cat "$PIDFILE")" 2>/dev/null || true
-      rm -f "$PIDFILE"
-    fi
-    exit 0
-    ;;
-  status)
-    if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
-      exit 0
-    fi
-    exit 1
-    ;;
-  *)
-    echo "usage: openclawctl {start|stop|status}" >&2
-    exit 2
-    ;;
+  start)  start_proc ;;
+  stop)   stop_proc ;;
+  status) status_proc ;;
+  *) echo "usage: openclawctl {start|stop|status}" >&2; exit 2 ;;
 esac

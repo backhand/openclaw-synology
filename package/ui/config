@@ -1,0 +1,12 @@
+{
+  ".url": {
+    "com.openclaw.OpenClaw": {
+      "type": "url",
+      "icon": "images/openclaw_{0}.png",
+      "title": "OpenClaw",
+      "desc": "OpenClaw Gateway Dashboard",
+      "url": "3rdparty/openclaw/index.html",
+      "allUsers": true
+    }
+  }
+}

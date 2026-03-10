@@ -1,0 +1,16 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="refresh" content="0; url=/openclaw/" />
+    <script>
+      // Redirect to the NAS host + OpenClaw gateway port.
+      // This runs inside DSM, so location.hostname points at the NAS.
+      const port = 18789;
+      const target = `${location.protocol}//${location.hostname}:${port}/`;
+      location.replace(target);
+    </script>
+    <title>OpenClaw</title>
+  </head>
+  <body>Redirecting to OpenClaw…</body>
+</html>
