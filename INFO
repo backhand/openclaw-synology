@@ -19,6 +19,8 @@ ctl_stop="yes"
 adminprotocol="http"
 adminport="18789"
 adminurl="/"
+port="18789"
+adminloginpage="index.cgi"
 
 # Open in a DSM window (desktop app integration)
 dsmuidir="ui"

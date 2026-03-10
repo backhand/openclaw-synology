@@ -1,0 +1,43 @@
+#!/bin/sh
+echo "Content-Type: text/html\n"
+cat <<EOF
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>OpenClaw</title>
+    <style>
+      html, body, iframe { margin: 0; padding: 0; width: 100%; height: 100%; border: 0; background: #111; }
+      body { overflow: hidden; font-family: system-ui, sans-serif; }
+      #fallback { position: absolute; inset: 0; display: none; place-items: center; color: #eee; background: #111; }
+      a { color: #7dd3fc; }
+    </style>
+  </head>
+  <body>
+    <iframe id="app" referrerpolicy="no-referrer"></iframe>
+    <div id="fallback">
+      <div>
+        <p>OpenClaw dashboard did not load in the embedded window.</p>
+        <p><a id="link" href="#" target="_blank" rel="noopener">Open it in a new tab</a></p>
+      </div>
+    </div>
+    <script>
+      const target = \`${location.protocol}//\${location.hostname}:18789/\`;
+      const iframe = document.getElementById('app');
+      const link = document.getElementById('link');
+      link.href = target;
+      iframe.src = target;
+      setTimeout(() => {
+        try {
+          // If iframe failed/X-Frame blocked, user still gets a fallback link.
+          const loaded = iframe.contentWindow && iframe.contentDocument;
+          if (!loaded) document.getElementById('fallback').style.display = 'grid';
+        } catch {
+          // Cross-origin is expected; keep iframe visible.
+        }
+      }, 3000);
+    </script>
+  </body>
+</html>
+EOF
+chmod +x "$0"  # Self-chmod if needed
