@@ -38,6 +38,23 @@ fi
 echo "[openclaw] npm install openclaw"
 "$NPM_BIN" install --omit=dev openclaw
 
+# Create minimal OpenClaw config (in package home dir)
+CONFIG_DIR="$PKG_HOME/.openclaw"
+CONFIG_FILE="$CONFIG_DIR/openclaw.json"
+mkdir -p "$CONFIG_DIR"
+cat > "$CONFIG_FILE" <<EOF
+{
+  "gateway": {
+    "mode": "local",
+    "controlUi": {
+      "dangerouslyAllowHostHeaderOriginFallback": true
+    }
+  }
+}
+EOF
+chmod 600 "$CONFIG_FILE"
+chown -R "$SYNOPKG_PKGUSER:$SYNOPKG_PKGGROUP" "$PKG_HOME" || true
+
 echo "[openclaw] starting service"
 if "$PKG_DEST/bin/openclawctl" start; then
   echo "[openclaw] service started"
